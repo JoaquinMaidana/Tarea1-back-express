@@ -21,10 +21,18 @@ router.post('/register', async (req, res) => {
             email: req.body.email,
             password: hashedPassword
         });
+        
 
+
+        //el primer parametro es el payload que es lo que queremos que se guarde
+        //creamos el access token, para las solicitudes http
+        
+        //se le agrega solo el id del usuario, se le pueden poner mas campos
         const token = jwt.sign({ id: newUser._id }, config.secret, {
             expiresIn: 86400 // expira en 24 horas
         });
+        //se puede crear otro con otro secret para usar como refresh token
+        //este ultimo token puede expirar en dias o semanas
 
         res.status(200).send({ auth: true, token: token });
     } catch (err) {
@@ -52,20 +60,30 @@ router.get('/me', VerifyToken, async (req, res) => {
 });
 
 
-   router.post('/login', function(req, res) {
-        User.findOne({ email: req.body.email }, function (err, user) {
-        if (err) return res.status(500).send('Error.');
-        if (!user) return res.status(404).send('No existe usuario.');
-        var passwordIsValid = bcrypt.compareSync(req.body.password,
-    user.password);
-        if (!passwordIsValid) return res.status(401).send({ auth: false,
-    token: null });
-        var token = jwt.sign({ id: user._id }, config.secret, {
-        expiresIn: 86400 // expira en 24 hours
+router.post('/login', async (req, res) => {
+    try {
+        const user = await User.findOne({ email: req.body.email });
+
+        if (!user) {
+            return res.status(404).send('No existe usuario.');
+        }
+
+        const passwordIsValid = bcrypt.compareSync(req.body.password, user.password);
+
+        if (!passwordIsValid) {
+            return res.status(401).send({ auth: false, token: null });
+        }
+
+        const token = jwt.sign({ id: user._id }, config.secret, {
+            expiresIn: 86400 // expira en 24 horas
         });
+
         res.status(200).send({ auth: true, token: token });
-        });
-   });
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Error al realizar el inicio de sesión.');
+    }
+});
 
    router.get('/logout', function(req, res) {
     res.status(200).send({ auth: false, token: null });

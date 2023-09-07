@@ -1,100 +1,73 @@
 var mongoose = require('mongoose');
-const Product = require('../models/product.model');
+
 const Usuario = require('../models/usuario.model');
-const Compra = require('../models/compra.model');
+const Partida = require('../models/partida.model');
 
 exports.test = function (req, res) {
- res.send('test compra');
+ res.send('test partida');
 };
 
+//igual esto no va a tener un endpoint creo
 
-
-exports.compra_create = async function (req, res, next) {
+exports.partida_create = async function (req, res, next) {
     try {
-      const producto = await Product.findById(req.body.idProducto);
-      if(!producto){
-          return  res.json("El producto con ese id no existe");
+      const usuarioX = await Usuario.findById(req.body.idUsuarioX);
+      if(!usuarioX){
+          return  res.json("El usuario X con ese id no existe");
       }
-      const usuario = await Usuario.findById(req.body.idUsuario);
-      if(!usuario){
-          return  res.json("El usuario con ese id no existe");
+      const usuarioO = await Usuario.findById(req.body.idUsuarioO);
+      if(!usuarioO){
+          return  res.json("El usuario O con ese id no existe");
       }
 
-      const monto = req.body.cantidad * producto.price ;
-      const compra = new Compra({       
-        producto: producto._id,
-        usuario: usuario._id,
-        cantidad: req.body.cantidad,
-        monto: monto
+      
+      const partida = new Partida({       
+        jugadorX: usuarioX._id,
+        jugadorO: usuarioO._id,
+        
       });
 
       // Guardar el producto
-      const savedCompra = await compra.save();
+      const savedPartida = await partida.save();
       
-      const populatedCompra = await Compra.findById(savedCompra._id)
-            .populate('producto usuario')
+      const populatedPartida = await Partida.findById(savedPartida._id)
+            .populate('jugadorX jugadorO')
             .exec();
 
-        res.json(populatedCompra);
+        res.json(populatedPartida);
 
-      res.json(savedCompra);
+      res.json(savedPartida);
     } catch (err) {
       console.log(err); // Imprimir el error en la consola para depuración
       return next(err); // Pasar el error al manejador de errores
     }
 };
 
-exports.compra_get = async function (req, res, next) {
+exports.partida_get = async function (req, res, next) {
     try {
-      const compras = await Compra.find()
-          .populate('producto usuario')
+      const partidas = await Partida.find()
+          .populate('jugadorX jugadorO')
           .exec();
 
-      res.json(compras);
+      res.json(partidas);
   } catch (err) {
       console.log(err); // Imprimir el error en la consola para depuración
       return next(err); // Pasar el error al manejador de errores
   }
 };
 
-exports.compra_usuario = async function (req, res, next) {
-    try {
-      const idUsuario = req.params.idUsuario;
+//para setear el ganador de una partida
+exports.partida_update = async function (req, res, next) {
+  try {
+    const updatedPartida = await Partida.findByIdAndUpdate(
+      req.params.id,
+      { ganador: req.body.ganador }, // Actualiza el campo "ganador" con el valor del cuerpo de la solicitud
+      { new: true }
+    ).exec();
 
-      // Buscar todas las compras del usuario con el ID proporcionado y poblar solo el producto
-      const compras = await Compra.find({ usuario: idUsuario })
-          .populate('producto')
-          .select('-usuario')  // Excluir el campo 'usuario'
-          .exec();
-
-      res.json(compras);
+    res.send(updatedPartida);
   } catch (err) {
-      console.log(err); // Imprimir el error en la consola para depuración
-      return next(err); // Pasar el error al manejador de errores
+    return next(err);
   }
 };
-
-
-exports.compra_producto = async function (req, res, next) {
-    try {
-      const idProducto = req.params.idProducto;
-
-      // Buscar todas las compras del producto con el ID proporcionado y poblar solo el producto
-      const compras = await Compra.find({ producto: idProducto })
-          .populate('usuario')
-          .select('-producto')  // Excluir el campo 'usuario'
-          .exec();
-
-      res.json(compras);
-  } catch (err) {
-      console.log(err); // Imprimir el error en la consola para depuración
-      return next(err); // Pasar el error al manejador de errores
-  }
-};
- 
-
-  //  exports.product_details = async function (req, res) {
-  //      var product = await Product.findById(req.params.id).exec();	
-  //      res.send(product);
-  //  };
 

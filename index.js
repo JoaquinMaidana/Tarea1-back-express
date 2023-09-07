@@ -13,9 +13,9 @@ const io = socketIo(server, {
     cors: { origin: '*' }
 });
 
-const product = require('./routes/product.route.js');
+
 const usuario = require('./routes/usuario.route.js');
-const compra = require('./routes/compra.route.js');
+const partida = require('./routes/partida.route.js');
 
 //conexion mongo
 var mongoose = require('mongoose');
@@ -33,9 +33,9 @@ app.use(bodyParser.urlencoded({extended: false}));
 var AuthController = require('./auth/AuthController');
 app.use('/api/auth', AuthController);
 
-app.use('/products', product);
+
 app.use('/usuarios', usuario);
-app.use('/compras', compra);
+app.use('/partidas', partida);
 
 // Socket.io
 io.on('connection', (socket) => {
