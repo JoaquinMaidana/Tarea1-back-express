@@ -37,9 +37,11 @@ app.use('/api/auth', AuthController);
 app.use('/usuarios', usuario);
 app.use('/partidas', partida);
 
-// Socket.io
-io.on('connection', (socket) => {
-    console.log('Se ha conectado un cliente');
+
+const lobbyIO = io.of('/lobby');
+lobbyIO.on('connection', (socket) => {
+  console.log('Se ha conectado un cliente al lobby');
+  
 
     socket.broadcast.emit('chat_message', {
         usuario: 'INFO',
@@ -47,9 +49,20 @@ io.on('connection', (socket) => {
     });
 
     socket.on('chat_message', (data) => {
-        io.emit('chat_message', data);
+        lobbyIO.emit('chat_message', data);
     });
 });
+
+const gameIO = io.of('/game');
+gameIO.on('connection', (socket) => {
+    console.log('Se ha conectado un cliente al juego');
+    // Lógica específica del juego aquí
+    socket.on('jugada', (indice) => {
+        gameIO.emit('jugada', indice);
+    });
+});
+  
+  
 
 const port = process.env.PORT || 1234;
 server.listen(port, () => {
