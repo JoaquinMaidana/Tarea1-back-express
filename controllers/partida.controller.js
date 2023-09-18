@@ -20,41 +20,94 @@ exports.partida_create = async function (req, res, next) {
           return  res.json("El usuario O con ese id no existe");
       }
 
+      const ganador = await Usuario.findById(req.body.ganador);
+      if(!ganador){
+          return  res.json("El ganador con ese id no existe");
+      }
+
       
       const partida = new Partida({       
         jugadorX: usuarioX._id,
         jugadorO: usuarioO._id,
-        
+        ganador: ganador._id
       });
 
       // Guardar el producto
       const savedPartida = await partida.save();
       
       const populatedPartida = await Partida.findById(savedPartida._id)
-            .populate('jugadorX jugadorO')
+            .populate('jugadorX jugadorO ganador')
             .exec();
 
         res.json(populatedPartida);
 
-      res.json(savedPartida);
+      
     } catch (err) {
       console.log(err); // Imprimir el error en la consola para depuración
       return next(err); // Pasar el error al manejador de errores
     }
 };
-
+//trae todas las partidas, totales
 exports.partida_get = async function (req, res, next) {
-    try {
-      const partidas = await Partida.find()
-          .populate('jugadorX jugadorO')
-          .exec();
+  try {
+    let query = Partida.find();
+    
+    // Verifica si se proporcionó el parámetro "orden"
+    if (req.query.orden === 'descendente') {
+      query = query.sort({ fecha: -1 }); // Ordenar por fecha en orden descendente
+    } else {
+      query = query.sort({ fecha: 1 }); // Ordenar por fecha en orden ascendente (predeterminado)
+    }
 
-      res.json(partidas);
+    // Verifica si se proporcionó el parámetro "limite"
+    if (req.query.limite) {
+      const limite = parseInt(req.query.limite, 10);
+      query = query.limit(limite); // Limitar los resultados al valor proporcionado
+    }
+
+    const partidas = await query
+      .populate('jugadorX jugadorO ganador')
+      .exec();
+
+    res.json(partidas);
   } catch (err) {
-      console.log(err); // Imprimir el error en la consola para depuración
-      return next(err); // Pasar el error al manejador de errores
+    console.log(err); // Imprimir el error en la consola para depuración
+    return next(err); // Pasar el error al manejador de errores
   }
 };
+
+exports.jugadores_mas_partidas_ganadas = async function (req, res, next) {
+  try {
+    const jugadoresMasPartidasGanadas = await Partida.aggregate([
+      {
+        $group: {
+          _id: '$ganador', // Agrupar por ganador
+          totalPartidasGanadas: { $sum: 1 }, // Contar las partidas ganadas
+        },
+      },
+      {
+        $lookup: {
+          from: 'usuarios', // El nombre de la colección de usuarios
+          localField: '_id',
+          foreignField: '_id',
+          as: 'jugador',
+        },
+      },
+      {
+        $unwind: '$jugador', // Deshacer el arreglo de jugadores
+      },
+      {
+        $sort: { totalPartidasGanadas: -1 }, // Ordenar en orden descendente por partidas ganadas
+      },
+    ]);
+
+    res.json(jugadoresMasPartidasGanadas);
+  } catch (err) {
+    console.log(err);
+    return next(err);
+  }
+};
+
 
 //para setear el ganador de una partida
 exports.partida_update = async function (req, res, next) {

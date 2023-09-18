@@ -10,6 +10,8 @@ router.post('/partida', partida_controller.partida_create);
 
 router.get('/partidas',partida_controller.partida_get)
 
+router.get('/ganadores',partida_controller.jugadores_mas_partidas_ganadas)
+
 router.put('/:id', partida_controller.partida_update);
 
 
